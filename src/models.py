@@ -5,4 +5,6 @@ class TimeMarket(SQLModel, table=True):
     name: str 
     address: str 
     creator_address: str 
-    
+    migrated: bool = Field(default=False) 
+    image: str | None = None 
+    x: str | None = None 

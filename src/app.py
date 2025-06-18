@@ -1,7 +1,25 @@
 from fastapi import FastAPI 
+from database import engine
+from sqlmodel import Session, select
+from threading import Thread
+from contextlib import asynccontextmanager
+from models import (
+    TimeMarket
+)
+from routers import router 
+from blockchain.listener import listen_to_events
+from database import create_db_and_tables
 
-app = FastAPI() 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    
+    create_db_and_tables()
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Timehub API!"}
+    thread = Thread(target=listen_to_events, daemon=True)
+    thread.start()
+
+    yield
+
+app = FastAPI(lifespan=lifespan)
+
+app.include_router(router) 
