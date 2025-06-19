@@ -1,5 +1,8 @@
 from fastapi import APIRouter
-from models import TimeMarket
+from models import TimeMarket, User
+from sqlmodel import Session, select
+from database import engine 
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -26,3 +29,30 @@ def getTimeMarket(username):
     with Session(engine) as session:
         timemarket = session.exec(select(TimeMarket).where(TimeMarket.name == username)).all()
         return timemarket
+    
+@router.get("/users")
+def getUsers():
+    with Session(engine) as session:
+        users = session.exec(select(User)).all()
+        return users
+
+@router.post("/users")
+def addUser(user: User):
+    with Session(engine) as session:
+        session.add(user)
+        session.commit()
+        session.refresh(user)   
+    return user 
+
+@router.put("/users/{user_id}")
+def updateUser(user_id, updated_user: dict):
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.id == user_id)).first()
+
+        for key, value in updated_user.items():
+            setattr(user, key, value)
+        
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user 

@@ -2,7 +2,7 @@ from .eth import contract, w3
 import time 
 from sqlmodel import Session, select
 from database import engine 
-from models import TimeMarket
+from models import TimeMarket, User
 
 SLEEP_TIME: int = 10 # seconds
 
@@ -22,16 +22,19 @@ def listen_to_events():
             )
 
             with Session(engine) as session:
-                token_address = event["args"]["timeToken"] 
-                creator_address = event["args"]["creator"]
+                
                 for event in events:
+                    token_address = event["args"]["timeToken"] 
+                    creator_address = event["args"]["creator"]
+                    
                     exists = session.exec(select(TimeMarket).where(TimeMarket.address == token_address)).first()
                     if exists:
                         continue
+                    
+                    user = session.exec(select(User).where(User.wallet_address == creator_address)).first()
                     time_market = TimeMarket(
-                        name="unknown",
                         address=token_address,
-                        creator_address=creator_address
+                        user_id=user.id
                     )
                     session.add(time_market)
                     session.commit()
