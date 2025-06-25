@@ -11,6 +11,8 @@ from routers import router
 from blockchain.listener import listen_to_events
 from database import create_db_and_tables
 
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     
