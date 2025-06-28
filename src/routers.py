@@ -4,6 +4,7 @@ from sqlmodel import Session, select
 from database import engine 
 from pydantic import BaseModel
 from blockchain.helpers import getPrice 
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
@@ -31,10 +32,10 @@ def getTimeMarket(username):
         timemarket = session.exec(select(TimeMarket).where(TimeMarket.name == username)).all()
         return timemarket
     
-@router.put("/time_markets/{market_id}")
-def updateTimeMarket(market_id, updated_market: dict):
+@router.put("/time_markets/{address}")
+def updateTimeMarketByAddress(address, updated_market: dict):
     with Session(engine) as session:
-        market = session.exec(select(TimeMarket).where(TimeMarket.id == market_id)).first()
+        market = session.exec(select(TimeMarket).where(TimeMarket.address == address)).first()
         
         for key, value in updated_market.items():
             setattr(market, key, value)
@@ -49,6 +50,15 @@ def getUsers():
     with Session(engine) as session:
         users = session.exec(select(User)).all()
         return users
+
+@router.get("/users/{address}")
+def getUser(address: str):
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.wallet_address == address)).first()
+        if user is None:
+            return JSONResponse(status_code=404, content={"message": "User not found"})
+    return user
+        
 
 @router.post("/users")
 def addUser(user: User):
@@ -82,19 +92,21 @@ async def getTimeMarketsData():
             image = timeMarket.image
             user = session.exec(select(User).where(User.id == timeMarket.user_id)).first()
             name = user.name
+            x = user.x
 
             response.append({
                 "name": name,
                 "image": image,
-                "price": time_market_price
+                "price": time_market_price,
+                "x": x
             })
         return response 
 
-@router.get("/time_market_data/{market_name}")
-async def getTimeMarketData(market_name: str):
-    market_name = market_name.lower()
+@router.get("/time_market_data/{xHandle}")
+async def getTimeMarketData(xHandle: str):
+    
     with Session(engine) as session:
-        user = session.exec(select(User).where(User.name == market_name)).first()
+        user = session.exec(select(User).where(User.x == xHandle)).first()
         time_market = session.exec(select(TimeMarket).where(TimeMarket.user_id == user.id)).first()
         image = time_market.image 
         time_market_price = await getPrice(time_market.address)
